@@ -1,0 +1,14 @@
+{
+  "name": "shared-wallet",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start:api": "dotnet watch --project apps/api/SharedWallet.Api.csproj",
+    "start:ui": "npm start --prefix apps/ui",
+    "dev": "concurrently -n \"API,UI\" -c \"magenta,cyan\" \"npm run start:api\" \"npm run start:ui\"",
+    "install:all": "npm install --prefix apps/ui && dotnet restore apps/api"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1"
+  }
+}

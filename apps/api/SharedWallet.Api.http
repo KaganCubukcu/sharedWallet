@@ -1,0 +1,6 @@
+@SharedWallet.Api_HostAddress = http://localhost:5155
+
+GET {{SharedWallet.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
