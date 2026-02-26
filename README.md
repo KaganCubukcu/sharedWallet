@@ -43,7 +43,7 @@ A premium, real-time shared budget tracking application designed for families an
 1. **Clone the repository**:
 
    ```bash
-   git clone <your-repo-url>
+   git clone <this repo>
    cd sharedWallet
    ```
 
