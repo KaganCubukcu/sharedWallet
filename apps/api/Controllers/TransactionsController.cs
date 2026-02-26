@@ -6,6 +6,7 @@ using SharedWallet.Api.Data;
 using SharedWallet.Api.Hubs;
 using SharedWallet.Api.Models;
 using System.Collections.Generic;
+using System.Security.Claims;
 
 namespace SharedWallet.Api.Controllers;
 
@@ -26,8 +27,11 @@ public class TransactionsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactions()
     {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
         return await _context.Transactions
             .Include(t => t.Category)
+            .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.TransactionDate)
             .ToListAsync();
     }
@@ -35,8 +39,11 @@ public class TransactionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Transaction>> CreateTransaction(Transaction transaction)
     {
-        _context.Transactions.Add(transaction);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        transaction.UserId = userId;
+        transaction.AddedBy = User.FindFirstValue(ClaimTypes.Name)!;
 
+        _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
 
         await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();

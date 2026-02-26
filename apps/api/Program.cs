@@ -21,6 +21,8 @@ builder.Services.AddSignalR();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => 
     {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -50,13 +52,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseCors("AllowAngularApp");
 
+app.UseRouting();
+
+app.UseAuthentication();
 app.UseAuthorization();
+
+// app.UseHttpsRedirection();
 
 app.MapControllers();
 app.MapHub<WalletHub>("/hubs/wallet");
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseCors("AllowAngularApp");
+
 app.Run();

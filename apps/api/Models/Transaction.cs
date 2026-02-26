@@ -11,4 +11,6 @@ public class Transaction
     public Category? Category {get; set;}
 
     public string AddedBy {get; set;} = "System";
+    public Guid UserId {get; set;}
+    public User? User {get; set;}
 }

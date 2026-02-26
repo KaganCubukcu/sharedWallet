@@ -20,8 +20,6 @@ export class App implements OnInit {
   ngOnInit() {
     this.signalRService.startConnection();
 
-    this.store.dispatch(TransactionActions.loadTransactions());
-
     this.signalRService.transactionAdded$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((transaction) => {

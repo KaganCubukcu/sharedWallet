@@ -17,7 +17,7 @@ export class Login {
   private router = inject(Router);
 
   loginData = {
-    username: '',
+    email: '',
     password: '',
   };
 
@@ -25,7 +25,7 @@ export class Login {
   errorMessage = '';
 
   onSubmit() {
-    if (this.loginData.username && this.loginData.password) {
+    if (this.loginData.email && this.loginData.password) {
       this.loading = true;
 
       this.authService

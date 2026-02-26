@@ -10,11 +10,14 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace SharedWallet.Api.Controllers;
 
+[ApiController]
+[Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
 
+    
     public AuthController(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
@@ -46,9 +49,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<string>> Login(UserDto request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+        try 
+        {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
 
-        if (user == null) return BadRequest("User not found.");
+        if (user == null) return BadRequest("User not found with this email.");
 
         if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
         {
@@ -57,6 +62,17 @@ public class AuthController : ControllerBase
 
         string token = CreateToken(user);
         return Ok(token);
+        
+        } catch (Exception ex)
+        {
+            Console.WriteLine("LOGIN ERROR: " + ex.Message);
+            if (ex.InnerException != null) 
+            {
+                Console.WriteLine("INNER ERROR: " + ex.InnerException.Message);
+            }
+            return StatusCode(500, "Internal Server Error: " + ex.Message);
+        }
+        
     }
 
     private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { TransactionService } from '../../services/transaction/transaction.service';
 import {
@@ -11,6 +11,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Transaction } from '../../models/transaction.model';
 import { first } from 'rxjs';
+import { AuthService } from '../../services/auth/auth.service';
+import { Router } from '@angular/router';
+import { TransactionActions } from '../../state/transactions/transactions.actions';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,9 +22,11 @@ import { first } from 'rxjs';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard {
+export class Dashboard implements OnInit {
   private store = inject(Store);
   private transactionService = inject(TransactionService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   transactions$ = this.store.select(selectAllTransactions);
   totalBalance$ = this.store.select(selectTotalBalance);
@@ -36,6 +41,10 @@ export class Dashboard {
     addedBy: 'User',
     transactionDate: new Date(),
   };
+
+  ngOnInit(): void {
+    this.store.dispatch(TransactionActions.loadTransactions());
+  }
 
   onSubmit() {
     if (
@@ -54,5 +63,10 @@ export class Dashboard {
           },
         });
     }
+  }
+
+  onLogout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }
