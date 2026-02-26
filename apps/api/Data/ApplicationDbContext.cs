@@ -21,4 +21,6 @@ public class ApplicationDbContext : DbContext
             new Category { Id = 4, Name = "Transportation", Icon = "🚗" }
         );
     }
+
+    public DbSet<User> Users {get; set;}
 }
