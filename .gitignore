@@ -26,7 +26,6 @@ Thumbs.db
 *.bak
 
 # --- Database Data ---
-# Docker volume map ettiğimiz klasörü git'e atmıyoruz
 postgres_data/
 
 # --- Project Specific ---
