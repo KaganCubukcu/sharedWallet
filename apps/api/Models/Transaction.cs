@@ -1,6 +1,6 @@
 namespace SharedWallet.Api.Models;
 
-public class Transaction
+public class Transaction : BaseEntity
 {
     public int Id {get; set;}
     public decimal Amount {get; set;}

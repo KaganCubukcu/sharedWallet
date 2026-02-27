@@ -31,7 +31,7 @@ public class TransactionsController : ControllerBase
 
         return await _context.Transactions
             .Include(t => t.Category)
-            .Where(t => t.UserId == userId)
+            .Where(t => t.UserId == userId && !t.IsDeleted)
             .OrderByDescending(t => t.TransactionDate)
             .ToListAsync();
     }
@@ -51,5 +51,58 @@ public class TransactionsController : ControllerBase
         await _hubContext.Clients.All.SendAsync("ReceiveTransaction", transaction);
 
         return CreatedAtAction(nameof(GetTransactions), new {id = transaction.Id}, transaction);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteTransaction(int id)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var transaction = await _context.Transactions.FindAsync(id);
+
+        if (transaction == null) return NotFound();
+
+        if (transaction.UserId != userId) return Unauthorized("You can only delete your own transactions.");
+
+        transaction.IsDeleted = true;
+        transaction.DeletedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        await _hubContext.Clients.All.SendAsync("TransactionDeleted", id);
+
+        return NoContent();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateTransaction(int id, Transaction transaction)
+    {
+        if (id != transaction.Id) return BadRequest();
+
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var existingTransaction = await _context.Transactions.FindAsync(id);
+
+        if (existingTransaction == null) return NotFound();
+
+        if (existingTransaction.UserId != userId) return Unauthorized();
+
+        existingTransaction.Amount = transaction.Amount;
+        existingTransaction.Description = transaction.Description;
+        existingTransaction.CategoryId = transaction.CategoryId;
+        existingTransaction.TransactionDate = transaction.TransactionDate;
+        existingTransaction.UpdatedAt = DateTime.UtcNow;
+        
+        try 
+        {
+            await _context.SaveChangesAsync();
+            await _context.Entry(existingTransaction).Reference(t => t.Category).LoadAsync();
+            await _hubContext.Clients.All.SendAsync("TransactionUpdated", existingTransaction);
+        } catch (DbUpdateConcurrencyException) {
+            if (!_context.Transactions.Any(e => e.Id == id)) return NotFound();
+            else throw;
+        }
+
+        return NoContent();
     }
 }
