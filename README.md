@@ -1,6 +1,6 @@
-# Shared Wallet 💎
+# Shared Wallet
 
-A premium, real-time shared budget tracking application designed for families and partners to manage their finances in perfect sync.
+Real-time shared budget tracking application designed for families and partners to manage their finances in perfect sync.
 
 ![Shared Wallet Dashboard](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Tech Stack](https://img.shields.io/badge/Stack-.NET%20%7C%20Angular%20%7C%20PostgreSQL-blue)
@@ -8,9 +8,7 @@ A premium, real-time shared budget tracking application designed for families an
 ## 🌟 Key Features
 
 - **Real-time Sync**: Instant expense updates across all connected devices using SignalR.
-- **Midnight UI**: A modern, sleek dark-themed dashboard designed with Tailwind CSS for eye comfort during late-night budgeting.
-- **Secure by Design**: Robust authentication system with JWT and PBKDF2-style password hashing/salting.
-- **Smart Analytics**: Real-time spending Pulse and Total Outflow calculation via NgRx selectors.
+- **Secure by Design**: Robust authentication system with JWT and HMACSHA512 password hashing.
 - **Categorized Ledger**: Easily track where your money goes with categorized transactions and intuitive icons.
 
 ## 🛠️ Tech Stack
@@ -25,7 +23,7 @@ A premium, real-time shared budget tracking application designed for families an
 
 ### Frontend
 
-- **Framework**: Angular 18+ (Standalone Components)
+- **Framework**: Angular 21 (Standalone Components)
 - **State Management**: NgRx (Store, Effects, Selectors)
 - **Styling**: Tailwind CSS 4.0
 - **Real-time**: SignalR Client Integration
@@ -36,7 +34,23 @@ A premium, real-time shared budget tracking application designed for families an
 
 - .NET 8 SDK
 - Node.js (v18+)
-- Docker Desktop
+- Docker
+
+### Environment Setup
+
+Before running the application, you need to configure your environment files:
+
+#### Frontend
+
+1. Navigate to `apps/ui/src/environments/`
+2. Copy `environment.template.ts` and rename it to `environment.ts`
+3. Fill in your local variables (the template has the default development values).
+
+#### Backend
+
+1. Navigate to `apps/api/`
+2. Create or verify `appsettings.json` and `appsettings.Development.json`
+3. Ensure your `ConnectionStrings:DefaultConnection` and `AppSettings:Token` (JWT Secret) are properly configured.
 
 ### Installation & Run
 
@@ -84,5 +98,3 @@ sharedWallet/
 ├── docker-compose.yml # PostgreSQL & Infrastructure
 └── package.json      # Monorepo management scripts
 ```
-
----
