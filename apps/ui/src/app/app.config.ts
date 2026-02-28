@@ -7,13 +7,15 @@ import { provideEffects } from '@ngrx/effects';
 import { transactionReducer } from './state/transactions/transactions.reducer';
 import { TransactionEffects } from './state/transactions/transactions.effects';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { walletReducer } from './state/wallets/wallets.reducer';
+import { WalletEffects } from './state/wallets/wallets.effects';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    provideStore({ transactions: transactionReducer }),
-    provideEffects([TransactionEffects]),
+    provideStore({ transactions: transactionReducer, wallets: walletReducer }),
+    provideEffects([TransactionEffects, WalletEffects]),
   ],
 };
