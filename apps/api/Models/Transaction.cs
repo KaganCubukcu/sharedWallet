@@ -13,4 +13,7 @@ public class Transaction : BaseEntity
     public string AddedBy {get; set;} = "System";
     public Guid UserId {get; set;}
     public User? User {get; set;}
+
+    public int WalletId { get; set; }
+    public Wallet? Wallet { get; set; }
 }

@@ -24,14 +24,18 @@ public class TransactionsController : ControllerBase
         _hubContext = hubContext;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactions()
+    [HttpGet("{walletId}")]
+    public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactions(int walletId)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+        var isMember = await _context.WalletMembers
+            .AnyAsync(m => m.WalletId == walletId && m.UserId == userId && !m.IsDeleted);
+        if (!isMember) return Unauthorized("You are not a member of this wallet.");
+
         return await _context.Transactions
             .Include(t => t.Category)
-            .Where(t => t.UserId == userId && !t.IsDeleted)
+            .Where(t => t.WalletId == walletId && !t.IsDeleted)
             .OrderByDescending(t => t.TransactionDate)
             .ToListAsync();
     }
@@ -39,18 +43,30 @@ public class TransactionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Transaction>> CreateTransaction(Transaction transaction)
     {
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        transaction.UserId = userId;
-        transaction.AddedBy = User.FindFirstValue(ClaimTypes.Name)!;
+       try 
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var wallet = await _context.Wallets.FindAsync(transaction.WalletId);
+            var isMember = await _context.WalletMembers
+                .AnyAsync(m => m.WalletId == transaction.WalletId && m.UserId == userId && !m.IsDeleted);
+            if (!isMember) return Unauthorized("You cannot add transactions to a wallet you are not a member of.");
 
-        _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
+            transaction.UserId = userId;
+            transaction.AddedBy = User.FindFirstValue(ClaimTypes.Name)!;
+            _context.Transactions.Add(transaction);
 
-        await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();
+            await _context.SaveChangesAsync();
+            await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();
+            await _hubContext.Clients.Group($"Wallet_{wallet!.AccessId}").SendAsync("ReceiveTransaction", transaction);
 
-        await _hubContext.Clients.All.SendAsync("ReceiveTransaction", transaction);
+            return CreatedAtAction(nameof(GetTransactions), new { walletId = transaction.WalletId }, transaction);
+        }
+        catch (Exception ex)
+        {
+            var error = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
 
-        return CreatedAtAction(nameof(GetTransactions), new {id = transaction.Id}, transaction);
+            return StatusCode(500, error);
+        }
     }
 
     [HttpDelete("{id}")]
@@ -69,7 +85,8 @@ public class TransactionsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        await _hubContext.Clients.All.SendAsync("TransactionDeleted", id);
+        var wallet = await _context.Wallets.FindAsync(transaction.WalletId);
+        await _hubContext.Clients.Group($"Wallet_{wallet!.AccessId}").SendAsync("TransactionDeleted", id);
 
         return NoContent();
     }
@@ -95,9 +112,10 @@ public class TransactionsController : ControllerBase
         
         try 
         {
+            var wallet = await _context.Wallets.FindAsync(existingTransaction.WalletId);
             await _context.SaveChangesAsync();
             await _context.Entry(existingTransaction).Reference(t => t.Category).LoadAsync();
-            await _hubContext.Clients.All.SendAsync("TransactionUpdated", existingTransaction);
+            await _hubContext.Clients.Group($"Wallet_{wallet!.AccessId}").SendAsync("TransactionUpdated", existingTransaction);
         } catch (DbUpdateConcurrencyException) {
             if (!_context.Transactions.Any(e => e.Id == id)) return NotFound();
             else throw;
