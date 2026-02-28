@@ -12,11 +12,39 @@ export class TransactionEffects {
   loadTransactions$ = createEffect(() =>
     this.actions$.pipe(
       ofType(TransactionActions.loadTransactions),
-      mergeMap(() =>
-        this.transactionService.getTransactions().pipe(
+      mergeMap(({ walletId }) =>
+        this.transactionService.getTransactions(walletId).pipe(
           map((transactions) => TransactionActions.loadTransactionsSuccess({ transactions })),
           catchError((error) =>
             of(TransactionActions.loadTransactionsFailure({ error: error.message })),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  deleteTransaction$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(TransactionActions.deleteTransaction),
+      mergeMap(({ id }) =>
+        this.transactionService.deleteTransaction(id).pipe(
+          map(() => TransactionActions.deleteTransactionSuccess({ id })),
+          catchError((error) =>
+            of(TransactionActions.deleteTransactionFailure({ error: error.message })),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  updateTransaction$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(TransactionActions.updateTransaction),
+      mergeMap(({ transaction }) =>
+        this.transactionService.updateTransaction(transaction).pipe(
+          map(() => TransactionActions.updateTransactionSuccess({ transaction })),
+          catchError((error) =>
+            of(TransactionActions.updateTransactionFailure({ error: error.message })),
           ),
         ),
       ),

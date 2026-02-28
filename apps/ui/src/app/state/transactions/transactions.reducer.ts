@@ -22,8 +22,22 @@ export const transactionReducer = createReducer(
     transactions,
     loading: false,
   })),
-  on(TransactionActions.addTransactionSuccess, (state, { transaction }) => ({
+  on(TransactionActions.addTransactionSuccess, (state, { transaction }) => {
+    const exists = state.transactions.find((t) => t.id === transaction.id);
+    if (exists) {
+      return state;
+    }
+    return {
+      ...state,
+      transactions: [transaction, ...state.transactions],
+    };
+  }),
+  on(TransactionActions.deleteTransactionSuccess, (state, { id }) => ({
     ...state,
-    transactions: [transaction, ...state.transactions],
+    transactions: state.transactions.filter((t) => t.id !== id),
+  })),
+  on(TransactionActions.updateTransactionSuccess, (state, { transaction }) => ({
+    ...state,
+    transactions: state.transactions.map((t) => (t.id === transaction.id ? transaction : t)),
   })),
 );

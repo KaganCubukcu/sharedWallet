@@ -6,6 +6,7 @@ export interface Category {
 
 export interface Transaction {
   id?: number;
+  walletId: number;
   amount: number;
   description: string;
   transactionDate: Date;
