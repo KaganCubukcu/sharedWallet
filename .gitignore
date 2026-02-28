@@ -31,3 +31,7 @@ postgres_data/
 # --- Project Specific ---
 .agent/
 docs/
+
+# Angular Environments
+apps/ui/src/environments/environment.ts
+apps/ui/src/environments/environment.prod.ts
