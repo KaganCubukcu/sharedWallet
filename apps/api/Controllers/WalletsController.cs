@@ -34,16 +34,21 @@ public class WalletsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Wallet>> CreateWallet(Wallet wallet)
     {
+        if (string.IsNullOrWhiteSpace(wallet.Name)) return BadRequest("Wallet name is required.");
+
+        if (string.IsNullOrWhiteSpace(wallet.Currency) || wallet.Currency.Length != 3)
+            return BadRequest("Currency must be a valid 3-letter ISO 4217 code.");
+
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         wallet.CreatedByUserId = userId;
         _context.Wallets.Add(wallet);
         await _context.SaveChangesAsync();
-        
+
         var member = new WalletMember {
             WalletId = wallet.Id,
             UserId = userId,
-            Role = "Admin"
+            Role = WalletRole.Admin
         };
 
         _context.WalletMembers.Add(member);

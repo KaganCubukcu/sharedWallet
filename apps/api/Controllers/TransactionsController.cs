@@ -43,30 +43,37 @@ public class TransactionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Transaction>> CreateTransaction(Transaction transaction)
     {
-       try 
+        if (transaction.Amount <= 0) return BadRequest("Amount must be greater than zero.");
+
+        if (!await _context.Categories.AnyAsync(c => c.Id == transaction.CategoryId))
+            return BadRequest("Invalid category.");
+
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var wallet = await _context.Wallets.FindAsync(transaction.WalletId);
+        if (wallet == null) return NotFound("Wallet not found.");
+
+        var isMember = await _context.WalletMembers
+            .AnyAsync(m => m.WalletId == transaction.WalletId && m.UserId == userId && !m.IsDeleted);
+        if (!isMember) return Unauthorized("You cannot add transactions to a wallet you are not a member of.");
+
+        transaction.UserId = userId;
+        transaction.AddedBy = User.FindFirstValue(ClaimTypes.Name)!;
+        _context.Transactions.Add(transaction);
+
+        try
         {
-            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var wallet = await _context.Wallets.FindAsync(transaction.WalletId);
-            var isMember = await _context.WalletMembers
-                .AnyAsync(m => m.WalletId == transaction.WalletId && m.UserId == userId && !m.IsDeleted);
-            if (!isMember) return Unauthorized("You cannot add transactions to a wallet you are not a member of.");
-
-            transaction.UserId = userId;
-            transaction.AddedBy = User.FindFirstValue(ClaimTypes.Name)!;
-            _context.Transactions.Add(transaction);
-
             await _context.SaveChangesAsync();
-            await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();
-            await _hubContext.Clients.Group($"Wallet_{wallet!.AccessId}").SendAsync("ReceiveTransaction", transaction);
-
-            return CreatedAtAction(nameof(GetTransactions), new { walletId = transaction.WalletId }, transaction);
         }
         catch (Exception ex)
         {
-            var error = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-
-            return StatusCode(500, error);
+            Console.WriteLine("CREATE TRANSACTION ERROR: " + (ex.InnerException?.Message ?? ex.Message));
+            return StatusCode(500, "Internal Server Error.");
         }
+
+        await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();
+        await _hubContext.Clients.Group($"Wallet_{wallet.AccessId}").SendAsync("ReceiveTransaction", transaction);
+
+        return CreatedAtAction(nameof(GetTransactions), new { walletId = transaction.WalletId }, transaction);
     }
 
     [HttpDelete("{id}")]
@@ -86,7 +93,10 @@ public class TransactionsController : ControllerBase
         await _context.SaveChangesAsync();
 
         var wallet = await _context.Wallets.FindAsync(transaction.WalletId);
-        await _hubContext.Clients.Group($"Wallet_{wallet!.AccessId}").SendAsync("TransactionDeleted", id);
+        if (wallet != null)
+        {
+            await _hubContext.Clients.Group($"Wallet_{wallet.AccessId}").SendAsync("TransactionDeleted", id);
+        }
 
         return NoContent();
     }
@@ -104,18 +114,26 @@ public class TransactionsController : ControllerBase
 
         if (existingTransaction.UserId != userId) return Unauthorized();
 
+        if (transaction.Amount <= 0) return BadRequest("Amount must be greater than zero.");
+
+        if (!await _context.Categories.AnyAsync(c => c.Id == transaction.CategoryId))
+            return BadRequest("Invalid category.");
+
         existingTransaction.Amount = transaction.Amount;
         existingTransaction.Description = transaction.Description;
         existingTransaction.CategoryId = transaction.CategoryId;
         existingTransaction.TransactionDate = transaction.TransactionDate;
         existingTransaction.UpdatedAt = DateTime.UtcNow;
-        
-        try 
+
+        try
         {
             var wallet = await _context.Wallets.FindAsync(existingTransaction.WalletId);
             await _context.SaveChangesAsync();
             await _context.Entry(existingTransaction).Reference(t => t.Category).LoadAsync();
-            await _hubContext.Clients.Group($"Wallet_{wallet!.AccessId}").SendAsync("TransactionUpdated", existingTransaction);
+            if (wallet != null)
+            {
+                await _hubContext.Clients.Group($"Wallet_{wallet.AccessId}").SendAsync("TransactionUpdated", existingTransaction);
+            }
         } catch (DbUpdateConcurrencyException) {
             if (!_context.Transactions.Any(e => e.Id == id)) return NotFound();
             else throw;

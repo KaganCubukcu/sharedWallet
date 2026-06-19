@@ -27,8 +27,13 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<ActionResult<User>> Register(UserDto request)
     {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
         if (await _context.Users.AnyAsync(u => u.Username == request.Username))
-        return BadRequest("User already exist.");
+            return BadRequest("User already exist.");
+
+        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+            return BadRequest("Email already in use.");
 
         CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
@@ -47,32 +52,33 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<string>> Login(UserDto request)
+    public async Task<ActionResult<string>> Login(LoginDto request)
     {
-        try 
-        {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        if (user == null) return BadRequest("User not found with this email.");
-
-        if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+        try
         {
-            return BadRequest("Wrong password.");
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (user == null) return BadRequest("Invalid email or password.");
+
+            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+            {
+                return BadRequest("Invalid email or password.");
+            }
+
+            string token = CreateToken(user);
+            return Ok(token);
         }
-
-        string token = CreateToken(user);
-        return Ok(token);
-        
-        } catch (Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine("LOGIN ERROR: " + ex.Message);
-            if (ex.InnerException != null) 
+            if (ex.InnerException != null)
             {
                 Console.WriteLine("INNER ERROR: " + ex.InnerException.Message);
             }
-            return StatusCode(500, "Internal Server Error: " + ex.Message);
+            return StatusCode(500, "Internal Server Error.");
         }
-        
     }
 
     private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
@@ -109,7 +115,7 @@ public class AuthController : ControllerBase
 
         var token = new JwtSecurityToken(
             claims: claims,
-            expires: DateTime.Now.AddDays(1),
+            expires: DateTime.UtcNow.AddDays(1),
             signingCredentials: creds
         );
 

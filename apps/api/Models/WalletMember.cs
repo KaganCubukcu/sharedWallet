@@ -9,5 +9,5 @@ public class WalletMember : BaseEntity
     public Guid UserId { get; set; }
     public User? User { get; set; }
 
-    public string Role { get; set; } = "Member";
+    public WalletRole Role { get; set; } = WalletRole.Member;
 }

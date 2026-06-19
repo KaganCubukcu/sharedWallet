@@ -20,7 +20,8 @@ public class WalletHub : Hub
     {
         var userId = Guid.Parse(Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var isMember = await _context.WalletMembers
-            .AnyAsync(m => m.Wallet.AccessId == accessId && m.UserId == userId && !m.IsDeleted);
+            .Include(m => m.Wallet)
+            .AnyAsync(m => m.Wallet != null && m.Wallet.AccessId == accessId && m.UserId == userId && !m.IsDeleted);
         if (isMember)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Wallet_{accessId}");

@@ -16,6 +16,10 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<WalletMember>()
+            .Property(m => m.Role)
+            .HasConversion<string>();
+
         modelBuilder.Entity<Category>().HasData(
             new Category { Id = 1, Name = "Kitchen", Icon = "🍎" },
             new Category { Id = 2, Name = "Rent & Bills", Icon = "🏠" },
@@ -25,4 +29,31 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users {get; set;}
+
+    public override int SaveChanges()
+    {
+        ApplyAuditInfo();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditInfo();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyAuditInfo()
+    {
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = DateTime.UtcNow;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+    }
 }
