@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace SharedWallet.Api.Models;
 
 public class Transaction : BaseEntity
@@ -14,8 +16,12 @@ public class Transaction : BaseEntity
 
     public string AddedBy {get; set;} = SystemUser;
     public Guid UserId {get; set;}
+
+    [JsonIgnore]
     public User? User {get; set;}
 
     public int WalletId { get; set; }
+
+    [JsonIgnore]
     public Wallet? Wallet { get; set; }
 }

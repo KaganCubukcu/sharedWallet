@@ -9,6 +9,6 @@
     "install:all": "npm install --prefix apps/ui && dotnet restore apps/api"
   },
   "devDependencies": {
-    "concurrently": "9.2.1"
+    "concurrently": "^10.0.4"
   }
 }
